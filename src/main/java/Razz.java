@@ -1,5 +1,6 @@
 import robocode.*;
 import java.awt.Color;
+import java.awt.geom.Point2D;
 
 public class Razz extends Robot {
     double previousEnergy = 100;
@@ -16,7 +17,7 @@ public class Razz extends Robot {
             double changeInEnergy = previousEnergy - getEnergy();
             if (changeInEnergy > 0 && changeInEnergy <= 3) {
                 movementDirection = -movementDirection;
-                setAhead((Math.random() * 100 + 100) * movementDirection);
+                ahead((Math.random() * 100 + 100) * movementDirection);
             }
             previousEnergy = getEnergy();
         }
@@ -38,12 +39,12 @@ public class Razz extends Robot {
 
     public void onHitByBullet(HitByBulletEvent e) {
         movementDirection = -movementDirection;
-        setAhead((Math.random() * 100 + 100) * movementDirection);
+        ahead((Math.random() * 100 + 100) * movementDirection);
     }
 
     public void onHitWall(HitWallEvent e) {
         movementDirection = -movementDirection;
-        setAhead((Math.random() * 100 + 100) * movementDirection);
+        ahead((Math.random() * 100 + 100) * movementDirection);
     }
 
     // Normalizes a bearing to between +180 and -180
