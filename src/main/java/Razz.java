@@ -40,10 +40,23 @@ public class Razz extends Robot {
     }
 
     private void doMinimalMovement() {
+    // Check if near a wall and adjust movement direction accordingly
+    double x = getX(), y = getY();
+    double fieldWidth = getBattleFieldWidth(), fieldHeight = getBattleFieldHeight();
+    double distanceToBorder = Math.min(Math.min(x, fieldWidth - x), Math.min(y, fieldHeight - y));
+
+    if (distanceToBorder < 100) {
+        // Near a wall; move away from it
+        movementDirection *= -1;
+        ahead(100 * movementDirection);
+        turnRight(90);
+    } else {
+        // Not near a wall; proceed with regular movement
         ahead(50 * movementDirection);
         turnRight(45);
         movementDirection *= -1;
     }
+}
 
     public void onScannedRobot(ScannedRobotEvent e) {
     double firePower = Math.min(500 / e.getDistance(), Math.max(1, getEnergy() / 15));
