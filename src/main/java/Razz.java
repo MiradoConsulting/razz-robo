@@ -8,16 +8,19 @@ public class Razz extends Robot {
     int gunDirection = 1;
 
     public void run() {
-        setColors(Color.red, Color.blue, Color.green); // body,gun,radar
+        setColors(Color.red, Color.blue, Color.green); // body, gun, radar
 
         while (true) {
             turnGunRight(360 * gunDirection);
 
-            // Change movementDirection if we've seen a drop in energy.
+            // Enhanced Movement
+            ahead(100 * movementDirection);
             double changeInEnergy = previousEnergy - getEnergy();
             if (changeInEnergy > 0 && changeInEnergy <= 3) {
+                // Enhanced evasion
                 movementDirection = -movementDirection;
-                ahead((Math.random() * 100 + 100) * movementDirection);
+                ahead(150 * movementDirection);
+                turnRight(45 * movementDirection); // Zigzag movement
             }
             previousEnergy = getEnergy();
         }
@@ -26,35 +29,40 @@ public class Razz extends Robot {
     public void onScannedRobot(ScannedRobotEvent e) {
         double firePower = Math.min(500 / e.getDistance(), 3);
         double bulletSpeed = 20 - firePower * 3;
-        long time = (long)(e.getDistance() / bulletSpeed); // Calculates how long the bullet will take to reach the target
-        double futureX = e.getVelocity() * Math.sin(e.getHeadingRadians()) * time; // Predicts the future x coordinate of the enemy
-        double futureY = e.getVelocity() * Math.cos(e.getHeadingRadians()) * time; // Predicts the future y coordinate of the enemy
+        long time = (long)(e.getDistance() / bulletSpeed);
+        
+        // Predictive Targeting Enhancements
+        double futureX = getX() + e.getDistance() * Math.sin(e.getBearingRadians() + getHeading());
+        double futureY = getY() + e.getDistance() * Math.cos(e.getBearingRadians() + getHeading());
         double absoluteDegree = absoluteBearing(getX(), getY(), futureX, futureY);
+        
         turnGunRight(normalizeBearing(absoluteDegree - getGunHeading()));
-
         fire(firePower);
+        
+        // Adjust gunDirection for radar
         gunDirection = -gunDirection;
-        scan(); // Might catch another robot while waiting for the bullet to travel
+        scan(); // Keep scanning for other robots
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
+        // Enhanced Evasion
         movementDirection = -movementDirection;
-        ahead((Math.random() * 100 + 100) * movementDirection);
+        ahead(150 * movementDirection);
+        turnRight(45 * movementDirection); // Add turn to evade
     }
 
     public void onHitWall(HitWallEvent e) {
+        // Improved Wall Avoidance
         movementDirection = -movementDirection;
-        ahead((Math.random() * 100 + 100) * movementDirection);
+        ahead(150 * movementDirection);
     }
 
-    // Normalizes a bearing to between +180 and -180
     double normalizeBearing(double angle) {
         while (angle > 180) angle -= 360;
         while (angle < -180) angle += 360;
         return angle;
     }
 
-    // Calculates the absolute bearing between two points
     double absoluteBearing(double x1, double y1, double x2, double y2) {
         double xo = x2 - x1;
         double yo = y2 - y1;
@@ -62,14 +70,14 @@ public class Razz extends Robot {
         double arcSin = Math.toDegrees(Math.asin(xo / hyp));
         double bearing = 0;
 
-        if (xo > 0 && yo > 0) { // both pos: lower-Left
+        if (xo > 0 && yo > 0) {
             bearing = arcSin;
-        } else if (xo < 0 && yo > 0) { // x neg, y pos: lower-right
-            bearing = 360 + arcSin; // arcsin is negative here, actually 360 - ang
-        } else if (xo > 0 && yo < 0) { // x pos, y neg: upper-left
+        } else if (xo < 0 && yo > 0) {
+            bearing = 360 + arcSin;
+        } else if (xo > 0 && yo < 0) {
             bearing = 180 - arcSin;
-        } else if (xo < 0 && yo < 0) { // both neg: upper-right
-            bearing = 180 - arcSin; // arcsin is negative here, actually 180 + ang
+        } else if (xo < 0 && yo < 0) {
+            bearing = 180 - arcSin;
         }
 
         return bearing;
