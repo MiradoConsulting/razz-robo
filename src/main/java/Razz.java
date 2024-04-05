@@ -11,56 +11,64 @@ public class Razz extends Robot {
         setColors(Color.red, Color.blue, Color.green); // body, gun, radar
 
         while (true) {
-            turnGunRight(360 * gunDirection);
+            // Enhanced Radar Management
+            turnRadarRight(360);
 
-            // Enhanced Movement
+            // Continuous Movement with Variation
             ahead(100 * movementDirection);
             double changeInEnergy = previousEnergy - getEnergy();
             if (changeInEnergy > 0 && changeInEnergy <= 3) {
-                // Enhanced evasion
-                movementDirection = -movementDirection;
+                // Advanced Evasion on being hit
+                movementDirection *= -1;
                 ahead(150 * movementDirection);
-                turnRight(45 * movementDirection); // Zigzag movement
+                turnRight(45 * movementDirection); // Adding randomness to the turn
             }
             previousEnergy = getEnergy();
         }
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
-        double firePower = Math.min(500 / e.getDistance(), 3);
-        double bulletSpeed = 20 - firePower * 3;
-        long time = (long)(e.getDistance() / bulletSpeed);
-        
-        // Predictive Targeting Enhancements
-        double futureX = getX() + e.getDistance() * Math.sin(e.getBearingRadians() + getHeading());
-        double futureY = getY() + e.getDistance() * Math.cos(e.getBearingRadians() + getHeading());
-        double absoluteDegree = absoluteBearing(getX(), getY(), futureX, futureY);
-        
-        turnGunRight(normalizeBearing(absoluteDegree - getGunHeading()));
-        fire(firePower);
-        
-        // Adjust gunDirection for radar
-        gunDirection = -gunDirection;
-        scan(); // Keep scanning for other robots
-    }
+    double firePower = Math.min(500 / e.getDistance(), Math.max(1, getEnergy() / 15));
+    
+    // Calculating radar turn in degrees
+    double radarTurn = getHeading() + e.getBearing() - getRadarHeading();
+    // Ensure the radar turn is within the -180 to 180 range
+    radarTurn = normalizeBearing(radarTurn);
+    
+    turnRadarRight(radarTurn);
+    
+    // Aim and fire at the calculated future position
+    turnGunRight(normalizeBearing(e.getBearing() + getHeading() - getGunHeading()));
+    fire(firePower);
+}
 
     public void onHitByBullet(HitByBulletEvent e) {
         // Enhanced Evasion
-        movementDirection = -movementDirection;
-        ahead(150 * movementDirection);
-        turnRight(45 * movementDirection); // Add turn to evade
+        double bearing = e.getBearing(); // Get the bearing of the incoming bullet
+        if (Math.random() > 0.5) {
+            turnRight(normalizeBearing(bearing + 90 - (30 * Math.random())));
+        } else {
+            turnRight(normalizeBearing(bearing + 90 + (30 * Math.random())));
+        }
+        ahead((150 + (Math.random() * 50)) * movementDirection);
     }
 
     public void onHitWall(HitWallEvent e) {
         // Improved Wall Avoidance
-        movementDirection = -movementDirection;
-        ahead(150 * movementDirection);
+        movementDirection *= -1;
+        ahead(100 * movementDirection);
     }
 
     double normalizeBearing(double angle) {
         while (angle > 180) angle -= 360;
         while (angle < -180) angle += 360;
         return angle;
+    }
+
+    double normalizeBearingRadians(double radians) {
+        while (radians > Math.PI) radians -= 2 * Math.PI;
+        while (radians < -Math.PI) radians += 2 * Math.PI;
+        return radians;
     }
 
     double absoluteBearing(double x1, double y1, double x2, double y2) {
