@@ -1,8 +1,9 @@
 import robocode.*;
 import java.awt.Color;
 import java.awt.geom.Point2D;
+import robocode.util.Utils;
 
-public class Razz extends Robot {
+public class Razz extends AdvancedRobot {
     double previousEnergy = 100;
     int movementDirection = 1;
     int gunDirection = 1;
@@ -39,6 +40,22 @@ public class Razz extends Robot {
         }
     }
 
+		// Normalizes an angle to an absolute angle.
+// The normalized angle will be in the range from 0 to 2*PI, where 2*PI itself is not included.
+double normalAbsoluteAngle(double angle) {
+    while (angle < 0) angle += 2 * Math.PI;
+    while (angle >= 2 * Math.PI) angle -= 2 * Math.PI;
+    return angle;
+}
+
+// Normalizes a bearing to a relative angle.
+// The normalized angle will be in the range of -PI to PI, where PI itself is not included.
+double normalRelativeAngle(double angle) {
+    while (angle > Math.PI) angle -= 2 * Math.PI;
+    while (angle < -Math.PI) angle += 2 * Math.PI;
+    return angle;
+}
+
     private void doMinimalMovement() {
     // Check if near a wall and adjust movement direction accordingly
     double x = getX(), y = getY();
@@ -59,17 +76,28 @@ public class Razz extends Robot {
 }
 
     public void onScannedRobot(ScannedRobotEvent e) {
+    double enemyBearing = getHeadingRadians() + e.getBearingRadians();
+    double enemyX = getX() + e.getDistance() * Math.sin(enemyBearing);
+    double enemyY = getY() + e.getDistance() * Math.cos(enemyBearing);
+    double enemyHeading = e.getHeadingRadians();
+    double enemyVelocity = e.getVelocity();
+
+    // Calculate bullet power based on distance and energy.
     double firePower = Math.min(500 / e.getDistance(), Math.max(1, getEnergy() / 15));
-    
-    // Calculating radar turn in degrees
-    double radarTurn = getHeading() + e.getBearing() - getRadarHeading();
-    // Ensure the radar turn is within the -180 to 180 range
-    radarTurn = normalizeBearing(radarTurn);
-    
-    turnRadarRight(radarTurn);
-    
-    // Aim and fire at the calculated future position
-    turnGunRight(normalizeBearing(e.getBearing() + getHeading() - getGunHeading()));
+    double bulletSpeed = 20 - firePower * 3;
+
+    // Predict the time for the bullet to reach the enemy
+    double futureTime = 0;
+    double predictedX = enemyX, predictedY = enemyY;
+    while (++futureTime * bulletSpeed < Point2D.distance(getX(), getY(), predictedX, predictedY)) {
+        predictedX += Math.sin(enemyHeading) * enemyVelocity;
+        predictedY += Math.cos(enemyHeading) * enemyVelocity;
+    }
+
+    // Aim the gun at the predicted position
+    double theta = Utils.normalAbsoluteAngle(Math.atan2(predictedX - getX(), predictedY - getY()));
+    setTurnGunRightRadians(Utils.normalRelativeAngle(theta - getGunHeadingRadians()));
+
     fire(firePower);
 }
 
