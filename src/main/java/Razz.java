@@ -6,25 +6,43 @@ public class Razz extends Robot {
     double previousEnergy = 100;
     int movementDirection = 1;
     int gunDirection = 1;
+    int initialOpponents = 0; // Variable to store the initial number of opponents
+    boolean attacking = false; // State to manage attacking mode
 
     public void run() {
         setColors(Color.red, Color.blue, Color.green); // body, gun, radar
-
+        initialOpponents = getOthers(); // Initialize with the current number of opponents
+        
         while (true) {
             // Enhanced Radar Management
             turnRadarRight(360);
-
-            // Continuous Movement with Variation
-            ahead(100 * movementDirection);
-            double changeInEnergy = previousEnergy - getEnergy();
-            if (changeInEnergy > 0 && changeInEnergy <= 3) {
-                // Advanced Evasion on being hit
-                movementDirection *= -1;
-                ahead(150 * movementDirection);
-                turnRight(45 * movementDirection); // Adding randomness to the turn
+            
+            if (!attacking) {
+                // Insert your hiding/movement strategy here
+                // For example, move in a small square or circle to stay low-profile
+                doMinimalMovement();
+                if (getOthers() <= initialOpponents / 2) {
+                    attacking = true; // Start attacking when half of the robots are dead
+                }
+            } else {
+                // Your existing attacking strategy
+                ahead(100 * movementDirection);
+                double changeInEnergy = previousEnergy - getEnergy();
+                if (changeInEnergy > 0 && changeInEnergy <= 3) {
+                    // Evasion strategy
+                    movementDirection *= -1;
+                    ahead(150 * movementDirection);
+                    turnRight(45 * movementDirection);
+                }
+                previousEnergy = getEnergy();
             }
-            previousEnergy = getEnergy();
         }
+    }
+
+    private void doMinimalMovement() {
+        ahead(50 * movementDirection);
+        turnRight(45);
+        movementDirection *= -1;
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
